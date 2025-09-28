@@ -8,8 +8,7 @@
   ],
   "functions": {
     "api/socket.js": {
-      "maxDuration": 30,
-      "supportsResponseStreaming": true
+      "maxDuration": 30
     }
   }
 }
