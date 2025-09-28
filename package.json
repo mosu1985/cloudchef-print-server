@@ -1,0 +1,28 @@
+{
+  "name": "cloudchef-print-server",
+  "version": "1.0.0", 
+  "description": "CloudChef Print Agent WebSocket Server - Vercel Serverless Functions",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "vercel build",
+    "deploy": "vercel --prod"
+  },
+  "keywords": ["print", "agent", "websocket", "vercel", "cloudchef"],
+  "author": "CloudChef Team",
+  "license": "MIT",
+  "dependencies": {
+    "socket.io": "^4.7.5",
+    "@vercel/node": "^3.0.21",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.5",
+    "vercel": "^32.7.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
