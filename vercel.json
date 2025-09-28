@@ -1,14 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/socket.js",
-      "use": "@vercel/node",
-      "config": {
-        "supportsResponseStreaming": true
-      }
-    }
-  ],
   "routes": [
     {
       "src": "/socket.io/(.*)",
@@ -17,7 +8,8 @@
   ],
   "functions": {
     "api/socket.js": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "supportsResponseStreaming": true
     }
   }
 }
