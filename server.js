@@ -247,7 +247,7 @@ io.on('connection', (socket) => {
     });
 
     // Пересылаем команду печати агенту
-    connection.agent.emit('print_job', {
+    connection.agent.emit('print_command', {
       jobId: data.jobId || `job_${Date.now()}`,
       labelData: data.labelData,
       settings: data.settings || {},
