@@ -97,7 +97,7 @@
         
         <div style="margin: 20px 0;">
             <label>🌐 URL сервера:</label>
-            <input type="text" id="serverUrl" value="http://localhost:3000" style="width: 300px;">
+            <input type="text" id="serverUrl" value="" style="width: 300px;">
             <br>
             
             <label>🔗 Код сопряжения:</label>
@@ -382,6 +382,9 @@
             log(`   - Socket ID: ${socket ? socket.id : 'не подключен'}`, 'info');
             log(`   - Состояние: ${socket ? (socket.connected ? 'подключен' : 'отключен') : 'не создан'}`, 'info');
         }
+        
+        // Автоматическое определение URL сервера
+        document.getElementById('serverUrl').value = window.location.origin;
         
         // Автогенерация кода при загрузке
         generateCode();
