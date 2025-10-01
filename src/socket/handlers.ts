@@ -107,11 +107,13 @@ export function initializeSocketHandlers(io: Server): void {
         if (data.role === 'agent') {
           // Register Print Agent
           const agentId = uuidv4();
+          const code = data.restaurantId || 'unknown';  // ✅ ДОБАВЛЕНО: используем restaurantId как code
           const agent = agentManager.register(
             agentId,
             socket.id,
             data.restaurantId || null,
             authPayload?.userId || null,
+            code,  // ✅ ИСПРАВЛЕНО: добавлен параметр code
             data.printerInfo || null,
             data.version || 'unknown',
             socket.handshake.address
