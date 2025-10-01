@@ -8,6 +8,8 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
+const { authMiddleware } = require('./middleware/auth');
+const { websocketAuth, rateLimitMiddleware, ALLOWED_ORIGINS } = require('./middleware/websocket-auth');
 
 const app = express();
 const server = createServer(app);
@@ -29,18 +31,27 @@ function log(level, message, data = {}) {
               Object.keys(data).length > 0 ? JSON.stringify(data, null, 2) : '');
 }
 
-// 🔧 Middleware
+// 🔧 Middleware - БЕЗОПАСНЫЙ CORS
 app.use(cors({
-  origin: "*",
+  origin: ALLOWED_ORIGINS,
   methods: ["GET", "POST", "OPTIONS"],
-  credentials: false
+  credentials: true // Включаем credentials для JWT
 }));
 
 app.use(express.json());
+
+// 🔐 Middleware авторизации для админ-маршрутов
+app.use(authMiddleware);
+
 app.use(express.static(path.join(__dirname)));
 
-// 🌐 Основной маршрут
+// 🌐 Основной маршрут - перенаправление на админ логин
 app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-login.html'));
+});
+
+// 🔐 Защищённая админ-панель (test.html)
+app.get('/test.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'test.html'));
 });
 
@@ -67,22 +78,28 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
-// 🚀 Инициализация Socket.IO сервера
+// 🚀 Инициализация Socket.IO сервера с БЕЗОПАСНОЙ конфигурацией
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: ALLOWED_ORIGINS, // ✅ Только разрешенные домены
     methods: ["GET", "POST"],
-    credentials: false
+    credentials: true // ✅ Поддержка JWT cookies
   },
   transports: ['websocket', 'polling'],
   pingTimeout: 60000,
   pingInterval: 25000
 });
 
-log('info', '🚀 Инициализация CloudChef Print Server...');
+// 🛡️ КРИТИЧЕСКИЕ MIDDLEWARE БЕЗОПАСНОСТИ
+io.use(rateLimitMiddleware); // Ограничения подключений
+io.use(websocketAuth);       // JWT аутентификация
 
-// 📡 Обработка новых подключений
+log('info', '🚀 Инициализация CloudChef Print Server с безопасностью...');
+
+// 📡 Обработка АУТЕНТИФИЦИРОВАННЫХ подключений
 io.on('connection', (socket) => {
+  // Теперь здесь все сокеты уже аутентифицированы!
+  const { userId, userEmail, clientType, authenticated } = socket;
   const connectionId = generateConnectionId();
   log('info', '🔌 Новое подключение', { 
     socketId: socket.id, 
@@ -246,8 +263,8 @@ io.on('connection', (socket) => {
       jobId: data.jobId
     });
 
-    // Пересылаем команду печати агенту
-    connection.agent.emit('print_command', {
+    // Пересылаем команду печати агенту - ИСПРАВЛЕНО НА 'print_job'!
+    connection.agent.emit('print_job', {
       jobId: data.jobId || `job_${Date.now()}`,
       labelData: data.labelData,
       settings: data.settings || {},

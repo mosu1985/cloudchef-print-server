@@ -93,3 +93,4 @@ export interface AgentListeners {
   print_job: (data: PrintJob) => void;
   error: (data: { type: string; message: string }) => void;
 }
+

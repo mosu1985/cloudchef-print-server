@@ -1,24 +1,31 @@
 {
   "name": "cloudchef-print-server",
-  "version": "1.0.0", 
+  "version": "1.0.0",
   "description": "CloudChef Print Agent WebSocket Server - Render.com Production",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
-  "keywords": ["print", "agent", "websocket", "render", "cloudchef"],
+  "keywords": [
+    "print",
+    "agent",
+    "websocket",
+    "render",
+    "cloudchef"
+  ],
   "author": "CloudChef Team",
   "license": "MIT",
   "dependencies": {
-    "socket.io": "^4.7.5",
     "cors": "^2.8.5",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.7.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
-    "typescript": "^5.3.3",
-    "@types/node": "^20.10.5"
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3"
   },
   "engines": {
     "node": ">=18"

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ CloudChef Admin Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .title {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .login-btn:active {
+            transform: translateY(0);
+        }
+        
+        .login-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8d7da;
+            border-radius: 8px;
+            border: 1px solid #f5c6cb;
+            display: none;
+        }
+        
+        .info-text {
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+        
+        .loading {
+            display: none;
+            margin-top: 15px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">🛡️</div>
+        <h1 class="title">Админ-панель CloudChef</h1>
+        <p class="subtitle">Вход для администраторов системы</p>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">📧 Email администратора:</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    required
+                    autocomplete="email"
+                    placeholder="admin@example.com"
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="password">🔒 Пароль:</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    required
+                    autocomplete="current-password"
+                    placeholder="••••••••"
+                >
+            </div>
+            
+            <button type="submit" class="login-btn" id="loginBtn">
+                🔓 Войти в админ-панель
+            </button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px;">Проверка учетных данных...</p>
+        </div>
+        
+        <div class="error-message" id="errorMessage">
+            <!-- Ошибки будут отображаться здесь -->
+        </div>
+        
+        <p class="info-text">
+            💡 Доступ только для суперадминистраторов<br>
+            🔐 Все действия логируются
+        </p>
+    </div>
+
+    <script>
+        const AUTHORIZED_EMAILS = ['mosu1985@gmail.com']; // В реальности будет проверяться на сервере
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Скрываем предыдущие ошибки
+            errorMessage.style.display = 'none';
+            
+            // Показываем загрузку
+            loginBtn.style.display = 'none';
+            loading.style.display = 'block';
+            
+            try {
+                // Простая проверка для демо (в продакшене будет JWT)
+                if (AUTHORIZED_EMAILS.includes(email) && password === 'admin123') {
+                    // Генерируем токен
+                    const token = btoa(JSON.stringify({
+                        email,
+                        role: 'superadmin',
+                        exp: Date.now() + 24 * 60 * 60 * 1000
+                    }));
+                    
+                    // Сохраняем токен
+                    localStorage.setItem('admin_token', token);
+                    
+                    // Перенаправляем на админ-панель
+                    window.location.href = '/test.html';
+                    
+                } else {
+                    throw new Error('Неверный email или пароль');
+                }
+                
+            } catch (error) {
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
+                
+                // Возвращаем кнопку
+                loginBtn.style.display = 'block';
+                loading.style.display = 'none';
+            }
+        });
+        
+        // Проверяем если уже авторизован
+        const token = localStorage.getItem('admin_token');
+        if (token) {
+            try {
+                const decoded = JSON.parse(atob(token));
+                if (decoded.exp > Date.now() && AUTHORIZED_EMAILS.includes(decoded.email)) {
+                    window.location.href = '/test.html';
+                }
+            } catch (e) {
+                localStorage.removeItem('admin_token');
+            }
+        }
+    </script>
+</body>
+</html>
+
