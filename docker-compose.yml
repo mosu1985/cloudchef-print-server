@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  print-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudchef-print-server
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      HOST: 0.0.0.0
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - cloudchef-network
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: cloudchef-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - cloudchef-network
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+networks:
+  cloudchef-network:
+    driver: bridge
+
+volumes:
+  redis-data:
