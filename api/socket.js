@@ -206,6 +206,16 @@ module.exports = async (req, res) => {
           return;
         }
 
+        log('info', '📨 Получена команда печати от браузера', {
+          socketId: socket.id,
+          code: browserInfo.code,
+          payloadPreview: {
+            labelId: data?.labelData?.label_id,
+            category: data?.labelData?.category,
+            expires: `${data?.labelData?.expiry_date} ${data?.labelData?.expiry_time}`
+          }
+        });
+
         const connection = connections.get(browserInfo.code);
         
         if (!connection || !connection.agent) {
@@ -220,7 +230,12 @@ module.exports = async (req, res) => {
         log('info', '🖨️ Команда печати от браузера', {
           code: browserInfo.code,
           labelData: data.labelData ? 'присутствует' : 'отсутствует',
-          jobId: data.jobId
+          jobId: data.jobId,
+          agentSocketId: connection.agent?.id || connection.agent?.socketId,
+          connectedAgents: {
+            hasAgent: Boolean(connection.agent),
+            agentInfo: connection.agentInfo || null
+          }
         });
 
         // Пересылаем команду печати агенту
@@ -231,6 +246,16 @@ module.exports = async (req, res) => {
           priority: data.priority || 'normal',
           timestamp: new Date().toISOString(),
           from: 'browser'
+        });
+
+        log('info', '📤 Команда print_job отправлена агенту', {
+          code: browserInfo.code,
+          agentSocket: connection.agent.socketId || connection.agent.id,
+          jobId: data.jobId,
+          labelPreview: {
+            labelId: data?.labelData?.label_id,
+            category: data?.labelData?.category
+          }
         });
 
         // Подтверждаем браузеру, что команда отправлена
