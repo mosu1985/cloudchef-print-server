@@ -25,7 +25,7 @@ export class AgentManager {
       socketId,
       restaurantId,
       userId,
-      code,  // ✅ ДОБАВЛЕНО: Сохраняем pairing code
+      code: (code || '').toUpperCase(),  // ✅ ДОБАВЛЕНО: Сохраняем pairing code в верхнем регистре
       printerInfo,
       connectedAt: new Date(),
       lastSeen: new Date(),

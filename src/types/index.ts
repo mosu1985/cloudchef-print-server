@@ -10,7 +10,7 @@ export interface ConnectedAgent {
   socketId: string;
   restaurantId: string | null;
   userId: string | null;
-  code: string;  // ✅ ДОБАВЛЕНО: Pairing code агента (489375)
+  code: string;  // Pairing code агента (8 символов A-Z0-9)
   printerInfo: PrinterInfo | null;
   connectedAt: Date;
   lastSeen: Date;

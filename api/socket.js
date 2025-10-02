@@ -61,12 +61,16 @@ module.exports = async (req, res) => {
 
       // 🎯 РЕГИСТРАЦИЯ АГЕНТА ПРИНТЕРА
       socket.on('register_agent', (data) => {
-        const { code, printerInfo = {}, version = 'unknown' } = data;
+        let { code, printerInfo = {}, version = 'unknown' } = data;
         
-        if (!code || code.length !== 6) {
+        if (typeof code === 'string') {
+          code = code.trim().toUpperCase();
+        }
+
+        if (!code || !/^[A-Z0-9]{8}$/.test(code)) {
           socket.emit('error', { 
             type: 'INVALID_CODE', 
-            message: 'Код должен содержать 6 цифр' 
+            message: 'Код должен содержать 8 символов (буквы и цифры)' 
           });
           return;
         }
@@ -123,12 +127,16 @@ module.exports = async (req, res) => {
 
       // 🌐 РЕГИСТРАЦИЯ ВЕБ-БРАУЗЕРА  
       socket.on('register_browser', (data) => {
-        const { code, userInfo = {} } = data;
+        let { code, userInfo = {} } = data;
         
-        if (!code || code.length !== 6) {
+        if (typeof code === 'string') {
+          code = code.trim().toUpperCase();
+        }
+
+        if (!code || !/^[A-Z0-9]{8}$/.test(code)) {
           socket.emit('error', { 
             type: 'INVALID_CODE', 
-            message: 'Код должен содержать 6 цифр' 
+            message: 'Код должен содержать 8 символов (буквы и цифры)' 
           });
           return;
         }
@@ -367,4 +375,6 @@ module.exports = async (req, res) => {
 
   res.end();
 };
+
+
 
