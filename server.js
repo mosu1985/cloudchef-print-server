@@ -92,7 +92,8 @@ const io = new Server(server, {
 
 // 🛡️ КРИТИЧЕСКИЕ MIDDLEWARE БЕЗОПАСНОСТИ
 io.use(rateLimitMiddleware); // Ограничения подключений
-io.use(websocketAuth);       // JWT аутентификация
+// ВРЕМЕННО ОТКЛЮЧЕНО ДЛЯ ОТЛАДКИ: io.use(websocketAuth);       // JWT аутентификация
+console.log('⚠️ WARNING: WebSocket authentication is DISABLED for debugging');
 
 log('info', '🚀 Инициализация CloudChef Print Server с безопасностью...');
 
