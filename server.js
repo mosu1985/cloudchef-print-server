@@ -91,10 +91,9 @@ const io = new Server(server, {
 });
 
 // 🛡️ КРИТИЧЕСКИЕ MIDDLEWARE БЕЗОПАСНОСТИ
-// ВРЕМЕННО ОТКЛЮЧЕНО ДЛЯ ОТЛАДКИ:
-// io.use(rateLimitMiddleware); // Ограничения подключений
-// io.use(websocketAuth);       // JWT аутентификация
-console.log('⚠️ WARNING: ALL WebSocket middleware is DISABLED for debugging');
+io.use(rateLimitMiddleware); // Ограничения подключений
+io.use(websocketAuth);       // JWT аутентификация
+console.log('✅ WebSocket middleware enabled (rate limiting + JWT auth)');
 
 log('info', '🚀 Инициализация CloudChef Print Server с безопасностью...');
 

@@ -259,10 +259,16 @@ module.exports = async (req, res) => {
         });
 
         // Подтверждаем браузеру, что команда отправлена
-        socket.emit('print_sent', {
+        const ackPayload = {
           jobId: data.jobId,
           message: 'Команда печати отправлена агенту',
           timestamp: new Date().toISOString()
+        };
+
+        socket.emit('print_sent', ackPayload);
+        log('info', '📨 Подтверждение отправлено браузеру', {
+          socketId: socket.id,
+          payload: ackPayload
         });
       });
 
