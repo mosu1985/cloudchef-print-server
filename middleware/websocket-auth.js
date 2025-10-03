@@ -10,7 +10,8 @@ const ALLOWED_ORIGINS = [
   'https://cloudchef.app',
   'https://www.cloudchef.app',
   'http://localhost:3000', // Для разработки
-  'http://localhost:5173'  // Для разработки Vite
+  'http://localhost:5173', // Для разработки Vite
+  'http://localhost:5174'  // Дополнительный порт Vite
 ];
 
 /**
@@ -22,9 +23,18 @@ function websocketAuth(socket, next) {
   try {
     // 🔍 Проверяем origin подключения
     const origin = socket.handshake.headers.origin;
-    if (process.env.NODE_ENV === 'production' && !ALLOWED_ORIGINS.includes(origin)) {
+
+    // В production блокируем только если origin явно не в списке разрешенных
+    // НО разрешаем localhost для локальной разработки (даже если сервер в production)
+    const isLocalhost = origin && (origin.includes('localhost') || origin.includes('127.0.0.1'));
+    const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
+
+    if (process.env.NODE_ENV === 'production' && !isAllowedOrigin && !isLocalhost) {
+      console.warn(`⚠️ Запрещенный origin: ${origin}`);
       return next(new Error(`Запрещенный origin: ${origin}`));
     }
+
+    console.log(`✅ Origin разрешен: ${origin}`);
 
     // 🔑 Извлекаем токен из auth или query
     const token = socket.handshake.auth?.token || 
@@ -174,4 +184,6 @@ module.exports = {
   rateLimitMiddleware,
   ALLOWED_ORIGINS
 };
+
+
 
