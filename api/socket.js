@@ -90,7 +90,8 @@ module.exports = async (req, res) => {
           version,
           status: 'connected',
           connectedAt: new Date().toISOString(),
-          lastSeen: new Date().toISOString()
+          lastSeen: new Date().toISOString(),
+          ipAddress: socket.handshake.address // IP адрес агента
         };
 
         agents.set(socket.id, agentInfo);
@@ -116,7 +117,8 @@ module.exports = async (req, res) => {
             agentInfo: {
               printerName: printerInfo.name || 'Неизвестный принтер',
               printerStatus: printerInfo.status || 'ready',
-              version
+              version,
+              ipAddress: agentInfo.ipAddress
             },
             connectedAt: agentInfo.connectedAt
           });
@@ -179,7 +181,8 @@ module.exports = async (req, res) => {
             agentInfo: {
               printerName: connection.agentInfo.printerInfo.name || 'Неизвестный принтер',
               printerStatus: connection.agentInfo.printerInfo.status || 'ready',
-              version: connection.agentInfo.version
+              version: connection.agentInfo.version,
+              ipAddress: connection.agentInfo.ipAddress
             },
             connectedAt: connection.agentInfo.connectedAt
           });
