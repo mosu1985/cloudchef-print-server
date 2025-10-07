@@ -9,6 +9,7 @@ const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = require("crypto");
 const path_1 = __importDefault(require("path"));
 const config_1 = require("./config");
@@ -307,9 +308,19 @@ app.use((err, req, res, next) => {
 io.use((socket, next) => {
     const clientType = socket.handshake.query?.clientType;
     // Агенты с токенами обрабатываются в handlers.ts
-    // Веб-клиенты могут подключаться без JWT (но с ним лучше)
+    // Веб-клиенты могут подключаться без JWT
     if (clientType !== 'agent') {
-        (0, auth_1.verifySocketToken)(socket); // Логируем, но не блокируем
+        const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace('Bearer ', '');
+        if (token) {
+            try {
+                const decoded = jsonwebtoken_1.default.verify(token, config_1.config.jwt.secret);
+                socket.data.user = decoded;
+                logger_1.logger.info('Socket JWT verified', { socketId: socket.id });
+            }
+            catch (err) {
+                // Истекший/невалидный JWT - ничего не делаем, клиент подключится без JWT
+            }
+        }
     }
     next();
 });

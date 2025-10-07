@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
+import jwt from 'jsonwebtoken';
 import { randomBytes } from 'crypto';
 import path from 'path';
 import { config } from './config';
@@ -11,7 +12,7 @@ import { httpRateLimiter } from './middleware/rateLimit';
 import { initializeSocketHandlers } from './socket/handlers';
 import { agentManager } from './services/AgentManager';
 import { printQueueManager } from './services/PrintQueueManager';
-import { verifyHttpToken, verifySocketToken } from './middleware/auth';
+import { verifyHttpToken } from './middleware/auth';
 import { supabaseAdmin } from './utils/supabase';
 
 // Create Express app
@@ -341,9 +342,18 @@ io.use((socket, next) => {
   const clientType = socket.handshake.query?.clientType as string;
   
   // Агенты с токенами обрабатываются в handlers.ts
-  // Веб-клиенты могут подключаться без JWT (но с ним лучше)
+  // Веб-клиенты могут подключаться без JWT
   if (clientType !== 'agent') {
-    verifySocketToken(socket); // Логируем, но не блокируем
+    const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace('Bearer ', '');
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, config.jwt.secret);
+        socket.data.user = decoded;
+        logger.info('Socket JWT verified', { socketId: socket.id });
+      } catch (err) {
+        // Истекший/невалидный JWT - ничего не делаем, клиент подключится без JWT
+      }
+    }
   }
   
   next();
