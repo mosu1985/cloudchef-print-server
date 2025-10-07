@@ -11,7 +11,7 @@ import { httpRateLimiter } from './middleware/rateLimit';
 import { initializeSocketHandlers } from './socket/handlers';
 import { agentManager } from './services/AgentManager';
 import { printQueueManager } from './services/PrintQueueManager';
-import { verifyHttpToken } from './middleware/auth';
+import { verifyHttpToken, verifySocketToken } from './middleware/auth';
 import { supabaseAdmin } from './utils/supabase';
 
 // Create Express app
@@ -334,6 +334,19 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
     path: req.path,
   });
   res.status(500).json({ error: 'Internal server error' });
+});
+
+// Socket.IO middleware (optional JWT verification)
+io.use((socket, next) => {
+  const clientType = socket.handshake.query?.clientType as string;
+  
+  // Агенты с токенами обрабатываются в handlers.ts
+  // Веб-клиенты могут подключаться без JWT (но с ним лучше)
+  if (clientType !== 'agent') {
+    verifySocketToken(socket); // Логируем, но не блокируем
+  }
+  
+  next();
 });
 
 // Initialize Socket.IO handlers

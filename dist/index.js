@@ -303,6 +303,16 @@ app.use((err, req, res, next) => {
     });
     res.status(500).json({ error: 'Internal server error' });
 });
+// Socket.IO middleware (optional JWT verification)
+io.use((socket, next) => {
+    const clientType = socket.handshake.query?.clientType;
+    // Агенты с токенами обрабатываются в handlers.ts
+    // Веб-клиенты могут подключаться без JWT (но с ним лучше)
+    if (clientType !== 'agent') {
+        (0, auth_1.verifySocketToken)(socket); // Логируем, но не блокируем
+    }
+    next();
+});
 // Initialize Socket.IO handlers
 (0, handlers_1.initializeSocketHandlers)(io);
 // Start server
