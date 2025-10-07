@@ -58,16 +58,19 @@ export function initializeSocketHandlers(io: Server): void {
     }
 
     // Optional: Verify JWT authentication (for web clients)
-    const authPayload = verifySocketToken(socket);
-    if (authPayload) {
-      logger.info('Socket authenticated with JWT', { 
-        socketId: socket.id,
-        userId: authPayload.userId 
-      });
-    } else if (clientType !== 'agent') {
-      logger.info('Socket connection without JWT (will authenticate via pairing code)', { 
-        socketId: socket.id 
-      });
+    // НЕ проверяем JWT для агентов - они уже верифицированы через токен агента
+    if (clientType !== 'agent' || !socket.data.agentTokenVerified) {
+      const authPayload = verifySocketToken(socket);
+      if (authPayload) {
+        logger.info('Socket authenticated with JWT', { 
+          socketId: socket.id,
+          userId: authPayload.userId 
+        });
+      } else if (clientType !== 'agent') {
+        logger.info('Socket connection without JWT (will authenticate via pairing code)', { 
+          socketId: socket.id 
+        });
+      }
     }
 
     // Handle Print Agent registration (legacy format with pairing code)
