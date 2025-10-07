@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор токенов агента - CloudChef</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 32px;
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            color: #2d3748;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.2s;
+            font-family: monospace;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .help-text {
+            color: #718096;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .token-result {
+            display: none;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+
+        .token-result.show {
+            display: block;
+        }
+
+        .token-value {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-all;
+            margin: 12px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .copy-btn {
+            background: #48bb78;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .copy-btn:hover {
+            background: #38a169;
+        }
+
+        .success-message {
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .success-message.show {
+            display: flex;
+        }
+
+        .error-message {
+            background: #fed7d7;
+            color: #742a2a;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .instructions {
+            background: #ebf4ff;
+            border-left: 4px solid #4299e1;
+            padding: 16px;
+            border-radius: 6px;
+            margin-top: 24px;
+        }
+
+        .instructions h3 {
+            color: #2c5282;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .instructions ol {
+            color: #2c5282;
+            font-size: 13px;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 6px;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🔑</div>
+            <h1>Генератор токенов агента</h1>
+            <p class="subtitle">CloudChef Print Agent Authentication</p>
+        </div>
+
+        <form id="token-form">
+            <div class="form-group">
+                <label for="restaurant-code">Код ресторана</label>
+                <input 
+                    type="text" 
+                    id="restaurant-code" 
+                    placeholder="A1B2C3D4" 
+                    maxlength="8"
+                    required
+                    pattern="[A-Z0-9]{8}"
+                >
+                <div class="help-text" id="code-helper">
+                    Введите 8-символьный код ресторана (буквы A-Z и цифры 0-9)
+                </div>
+            </div>
+
+            <button type="submit" class="btn" id="generate-btn">
+                <span>🔑</span>
+                <span>Сгенерировать токен</span>
+            </button>
+        </form>
+
+        <div class="error-message" id="error-message"></div>
+
+        <div class="token-result" id="token-result">
+            <h3 style="color: #2d3748; margin-bottom: 12px;">✅ Токен успешно сгенерирован</h3>
+            <div class="token-value" id="token-value"></div>
+            <button class="copy-btn" id="copy-btn">
+                <span>📋</span>
+                <span>Скопировать токен</span>
+            </button>
+            <div class="success-message" id="copy-success">
+                <span>✅</span>
+                <span>Токен скопирован в буфер обмена!</span>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>📝 Инструкция по использованию:</h3>
+            <ol>
+                <li>Введите код вашего ресторана (8 символов)</li>
+                <li>Нажмите "Сгенерировать токен"</li>
+                <li>Скопируйте полученный токен</li>
+                <li>Откройте CloudChef Print Agent на компьютере с принтером</li>
+                <li>Вставьте токен в поле "Токен агента"</li>
+                <li>Нажмите "Подключиться"</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('token-form');
+        const restaurantCodeInput = document.getElementById('restaurant-code');
+        const generateBtn = document.getElementById('generate-btn');
+        const tokenResult = document.getElementById('token-result');
+        const tokenValue = document.getElementById('token-value');
+        const copyBtn = document.getElementById('copy-btn');
+        const copySuccess = document.getElementById('copy-success');
+        const errorMessage = document.getElementById('error-message');
+        const codeHelper = document.getElementById('code-helper');
+
+        // Автоформатирование кода ресторана
+        restaurantCodeInput.addEventListener('input', (e) => {
+            const cleaned = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            e.target.value = cleaned.substring(0, 8);
+
+            if (cleaned.length === 8) {
+                codeHelper.textContent = '✅ Код выглядит корректно';
+                codeHelper.style.color = '#48bb78';
+            } else {
+                codeHelper.textContent = `Осталось символов: ${8 - cleaned.length}`;
+                codeHelper.style.color = '#718096';
+            }
+        });
+
+        // Генерация токена
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const restaurantCode = restaurantCodeInput.value.trim();
+
+            if (!/^[A-Z0-9]{8}$/.test(restaurantCode)) {
+                showError('Введите корректный 8-символьный код (буквы A-Z и цифры 0-9)');
+                return;
+            }
+
+            // Показываем загрузку
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<div class="spinner"></div><span>Генерация...</span>';
+            errorMessage.classList.remove('show');
+            tokenResult.classList.remove('show');
+
+            try {
+                const response = await fetch('/api/generate-agent-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ restaurantCode }),
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    tokenValue.textContent = data.agentToken;
+                    tokenResult.classList.add('show');
+                } else {
+                    showError(data.message || 'Ошибка генерации токена');
+                }
+            } catch (error) {
+                showError('Ошибка подключения к серверу: ' + error.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<span>🔑</span><span>Сгенерировать токен</span>';
+            }
+        });
+
+        // Копирование токена
+        copyBtn.addEventListener('click', async () => {
+            const token = tokenValue.textContent;
+
+            try {
+                await navigator.clipboard.writeText(token);
+                copySuccess.classList.add('show');
+
+                setTimeout(() => {
+                    copySuccess.classList.remove('show');
+                }, 3000);
+            } catch (error) {
+                // Fallback для старых браузеров
+                const textArea = document.createElement('textarea');
+                textArea.value = token;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                copySuccess.classList.add('show');
+                setTimeout(() => {
+                    copySuccess.classList.remove('show');
+                }, 3000);
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = '❌ ' + message;
+            errorMessage.classList.add('show');
+        }
+    </script>
+</body>
+</html>

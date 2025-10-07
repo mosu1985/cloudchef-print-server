@@ -55,6 +55,11 @@ app.get('/test.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'test.html'));
 });
 
+// 🔑 Генератор токенов агента (публичный доступ)
+app.get('/generate-token', (req, res) => {
+  res.sendFile(path.join(__dirname, 'generate-token.html'));
+});
+
 // ❤️ Health check для Render.com
 app.get('/health', (req, res) => {
   res.json({ 
@@ -75,6 +80,49 @@ app.get('/api/stats', (req, res) => {
     browsers: browsers.size,
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
+  });
+});
+
+// 🔑 API для генерации токена агента
+app.post('/api/generate-agent-token', (req, res) => {
+  const { restaurantCode } = req.body;
+  
+  // Валидация кода ресторана
+  if (!restaurantCode || typeof restaurantCode !== 'string') {
+    return res.status(400).json({ 
+      error: 'Не указан код ресторана',
+      message: 'Требуется поле restaurantCode' 
+    });
+  }
+  
+  // Проверяем формат кода (должен быть 8 символов буквы/цифры)
+  if (!/^[A-Z0-9]{8}$/.test(restaurantCode)) {
+    return res.status(400).json({ 
+      error: 'Неверный формат кода',
+      message: 'Код ресторана должен содержать 8 символов (буквы A-Z и цифры 0-9)' 
+    });
+  }
+  
+  // Генерируем случайный 32-символьный ключ
+  const crypto = require('crypto');
+  const randomKey = crypto.randomBytes(16).toString('hex'); // 32 hex символа
+  
+  // Формируем токен: agent_<restaurantCode>_<randomKey>
+  const agentToken = `agent_${restaurantCode}_${randomKey}`;
+  
+  log('info', '🔑 Сгенерирован токен агента', {
+    restaurantCode,
+    tokenPrefix: `agent_${restaurantCode}_...`,
+    generatedAt: new Date().toISOString()
+  });
+  
+  res.json({
+    success: true,
+    agentToken,
+    restaurantCode,
+    generatedAt: new Date().toISOString(),
+    expiresAt: null, // Токены не истекают (можно добавить позже)
+    message: 'Токен успешно сгенерирован'
   });
 });
 

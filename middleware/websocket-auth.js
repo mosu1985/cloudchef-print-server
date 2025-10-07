@@ -137,19 +137,29 @@ function verifySupabaseToken(token, callback) {
  * @param {Function} callback - Callback(error, agentInfo)
  */
 function verifyAgentToken(token, callback) {
+  console.log('🔍 Проверяем токен агента:', token ? `${token.substring(0, 20)}...` : 'отсутствует');
+  
   // Для агентов используем более простую схему с API ключами
   // Формат: agent_<restaurantCode>_<randomKey>
-  const agentKeyPattern = /^agent_([A-Z0-9]{6})_([a-zA-Z0-9]{32})$/;
+  // restaurantCode - 8 символов (буквы A-Z, цифры 0-9)
+  // randomKey - 32 hex символа
+  const agentKeyPattern = /^agent_([A-Z0-9]{8})_([a-f0-9]{32})$/;
   const match = token.match(agentKeyPattern);
   
   if (!match) {
-    return callback(new Error('Неверный формат токена агента'));
+    console.error('❌ Неверный формат токена агента. Ожидается: agent_<8 chars>_<32 hex chars>');
+    return callback(new Error('Неверный формат токена агента. Ожидается формат: agent_XXXXXXXX_<32 hex chars>'));
   }
   
   const [, restaurantCode, apiKey] = match;
   
+  console.log('✅ Токен агента валиден:', {
+    restaurantCode,
+    apiKeyPrefix: `${apiKey.substring(0, 8)}...`
+  });
+  
   // TODO: В production проверять в базе данных
-  // Сейчас для MVP принимаем любой правильно сформированный токен
+  // Для MVP принимаем любой правильно сформированный токен
   callback(null, {
     agentId: `agent_${restaurantCode}`,
     restaurantCode: restaurantCode,
