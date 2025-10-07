@@ -4,28 +4,67 @@ import { logger } from '../utils/logger';
 import { agentManager } from '../services/AgentManager';
 import { printQueueManager } from '../services/PrintQueueManager';
 import { socketRateLimiter } from '../middleware/rateLimit';
-import { verifySocketToken } from '../middleware/auth';
+import { verifySocketToken, verifyAgentToken } from '../middleware/auth';
 import { ClientRegistration, PrintRequest, PrintResponse } from '../types';
 
 /**
  * Initialize Socket.IO handlers
  */
 export function initializeSocketHandlers(io: Server): void {
-  io.on('connection', (socket: Socket) => {
+  io.on('connection', async (socket: Socket) => {
     logger.info('New socket connection', {
       socketId: socket.id,
       ip: socket.handshake.address,
     });
 
+    // Check if this is an agent connection (has agent token in auth)
+    const agentToken = socket.handshake.auth?.token;
+    const clientType = socket.handshake.query?.clientType as string;
+    
+    // 🔐 Проверка токена агента (если это агент)
+    if (clientType === 'agent' && agentToken) {
+      logger.info('🔍 Обнаружен агент с токеном, проверяем...', {
+        socketId: socket.id,
+        tokenPrefix: agentToken.substring(0, 20) + '...',
+      });
+
+      const verification = await verifyAgentToken(agentToken);
+      
+      if (!verification.valid) {
+        logger.error('❌ Агент отклонён: невалидный токен', {
+          socketId: socket.id,
+          error: verification.error,
+        });
+        
+        socket.emit('authentication_error', {
+          message: verification.error || 'Токен агента недействителен',
+          code: 'INVALID_AGENT_TOKEN',
+        });
+        
+        socket.disconnect(true);
+        return;
+      }
+
+      logger.info('✅ Токен агента валиден, агент авторизован', {
+        socketId: socket.id,
+        restaurantCode: verification.restaurantCode,
+        tokenId: verification.tokenId,
+      });
+
+      // Сохраняем информацию о верификации агента
+      socket.data.agentTokenVerified = true;
+      socket.data.verifiedRestaurantCode = verification.restaurantCode;
+      socket.data.tokenId = verification.tokenId;
+    }
+
     // Optional: Verify JWT authentication (for web clients)
-    // Agents use pairing code authentication instead
     const authPayload = verifySocketToken(socket);
     if (authPayload) {
       logger.info('Socket authenticated with JWT', { 
         socketId: socket.id,
         userId: authPayload.userId 
       });
-    } else {
+    } else if (clientType !== 'agent') {
       logger.info('Socket connection without JWT (will authenticate via pairing code)', { 
         socketId: socket.id 
       });
@@ -34,12 +73,37 @@ export function initializeSocketHandlers(io: Server): void {
     // Handle Print Agent registration (legacy format with pairing code)
     socket.on('register_agent', (data: { code: string; printerInfo?: any }, callback?: (response: any) => void) => {
       try {
-        logger.info('Print Agent registration with pairing code', { socketId: socket.id, code: data.code });
+        // 🔐 Если агент верифицирован через токен, используем код из токена
+        const restaurantCode = socket.data.verifiedRestaurantCode || data.code;
+        
+        // 🔒 Проверяем, что код из запроса совпадает с кодом из токена (если токен был проверен)
+        if (socket.data.agentTokenVerified && data.code !== socket.data.verifiedRestaurantCode) {
+          logger.error('❌ Код ресторана не совпадает с токеном', {
+            socketId: socket.id,
+            providedCode: data.code,
+            tokenCode: socket.data.verifiedRestaurantCode,
+          });
+          
+          socket.emit('registration_error', {
+            message: 'Код ресторана не совпадает с токеном агента',
+          });
+          
+          if (callback) {
+            callback({ success: false, error: 'Код ресторана не совпадает с токеном' });
+          }
+          return;
+        }
+
+        logger.info('Print Agent registration', { 
+          socketId: socket.id, 
+          code: restaurantCode,
+          tokenVerified: socket.data.agentTokenVerified || false,
+        });
 
         const agentId = uuidv4();
         // Use pairing code as restaurantId for now (codes are unique)
-        const restaurantId = data.code;
-        const code = data.code;  // ✅ ДОБАВЛЕНО: Сохраняем pairing code
+        const restaurantId = restaurantCode;
+        const code = restaurantCode;  // ✅ ДОБАВЛЕНО: Сохраняем pairing code
         
         const agent = agentManager.register(
           agentId,

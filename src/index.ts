@@ -12,6 +12,7 @@ import { initializeSocketHandlers } from './socket/handlers';
 import { agentManager } from './services/AgentManager';
 import { printQueueManager } from './services/PrintQueueManager';
 import { verifyHttpToken } from './middleware/auth';
+import { supabaseAdmin } from './utils/supabase';
 
 // Create Express app
 const app = express();
@@ -154,8 +155,17 @@ app.get('/api/prints', (req, res) => {
   res.status(200).json({ commands });
 });
 
-// 🔑 API endpoint для генерации токенов агентов
-app.post('/api/generate-agent-token', (req, res) => {
+// 🔑 API endpoint для генерации токенов агентов (требуется JWT аутентификация)
+app.post('/api/generate-agent-token', async (req, res) => {
+  // Проверяем JWT токен пользователя
+  const auth = verifyHttpToken(req.headers.authorization);
+  if (!auth) {
+    return res.status(401).json({ 
+      error: 'Unauthorized',
+      message: 'Требуется JWT токен для генерации токена агента' 
+    });
+  }
+
   const { restaurantCode } = req.body;
   
   // Валидация кода ресторана
@@ -180,20 +190,53 @@ app.post('/api/generate-agent-token', (req, res) => {
   // Формируем токен: agent_<restaurantCode>_<randomKey>
   const agentToken = `agent_${restaurantCode}_${randomKey}`;
   
-  logger.info('🔑 Сгенерирован токен агента', {
-    restaurantCode,
-    tokenPrefix: `agent_${restaurantCode}_...`,
-    generatedAt: new Date().toISOString()
-  });
-  
-  res.json({
-    success: true,
-    agentToken,
-    restaurantCode,
-    generatedAt: new Date().toISOString(),
-    expiresAt: null, // Токены не истекают (можно добавить позже)
-    message: 'Токен успешно сгенерирован'
-  });
+  try {
+    // 💾 Сохраняем токен в Supabase
+    const { data, error } = await supabaseAdmin
+      .from('agent_tokens')
+      .insert({
+        token: agentToken,
+        restaurant_code: restaurantCode,
+        created_by: auth.userId,
+        is_active: true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('❌ Ошибка сохранения токена в Supabase', {
+        error: error.message,
+        restaurantCode,
+      });
+      return res.status(500).json({
+        error: 'Ошибка сохранения токена',
+        message: error.message
+      });
+    }
+
+    logger.info('🔑 Токен агента сгенерирован и сохранён', {
+      restaurantCode,
+      tokenPrefix: `agent_${restaurantCode}_...`,
+      tokenId: data.id,
+      userId: auth.userId,
+      generatedAt: new Date().toISOString()
+    });
+    
+    res.json({
+      success: true,
+      agentToken,
+      restaurantCode,
+      generatedAt: data.created_at,
+      expiresAt: null, // Токены не истекают (можно добавить позже)
+      message: 'Токен успешно сгенерирован и сохранён'
+    });
+  } catch (err) {
+    logger.error('❌ Неожиданная ошибка при генерации токена', { error: err });
+    res.status(500).json({
+      error: 'Внутренняя ошибка сервера',
+      message: 'Не удалось сгенерировать токен'
+    });
+  }
 });
 
 // 🔑 Веб-страница для генерации токенов
