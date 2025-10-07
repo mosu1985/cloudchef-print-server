@@ -76,13 +76,6 @@ export function initializeSocketHandlers(io: Server): void {
 
     // Handle Print Agent registration (legacy format with pairing code)
     socket.on('register_agent', (data: { code: string; printerInfo?: any }, callback?: (response: any) => void) => {
-      logger.info('🔍 DEBUG: Получено событие register_agent', {
-        socketId: socket.id,
-        data,
-        agentTokenVerified: socket.data.agentTokenVerified,
-        verifiedRestaurantCode: socket.data.verifiedRestaurantCode,
-      });
-      
       try {
         // 🔐 Если агент верифицирован через токен, используем код из токена
         const restaurantCode = socket.data.verifiedRestaurantCode || data.code;
