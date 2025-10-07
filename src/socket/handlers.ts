@@ -59,8 +59,9 @@ export function initializeSocketHandlers(io: Server): void {
 
     // Optional: Verify JWT authentication (for web clients)
     // НЕ проверяем JWT для агентов - они уже верифицированы через токен агента
+    let authPayload = null;
     if (clientType !== 'agent' || !socket.data.agentTokenVerified) {
-      const authPayload = verifySocketToken(socket);
+      authPayload = verifySocketToken(socket);
       if (authPayload) {
         logger.info('Socket authenticated with JWT', { 
           socketId: socket.id,
