@@ -140,9 +140,20 @@ export function initializeSocketHandlers(io: Server): void {
 
         // 🔔 Notify all clients in restaurant room about new agent
         const roomAgents = agentManager.getAgentsByRestaurant(restaurantId);
+        
+        logger.info('📡 Broadcasting agents-updated event', {
+          restaurantId,
+          roomName: `restaurant:${restaurantId}`,
+          agentsCount: roomAgents.length,
+          agentIds: roomAgents.map(a => a.id),
+        });
+        
         io.to(`restaurant:${restaurantId}`).emit('agents-updated', {
           agents: roomAgents,
         });
+        
+        // Также отправляем глобальное событие connected-agents для мониторинга
+        io.emit('connected-agents', roomAgents);
 
         if (callback) {
           callback({ success: true, agentId, restaurantId, code });  // ✅ ДОБАВЛЕНО: code в callback

@@ -239,6 +239,73 @@ app.post('/api/generate-agent-token', async (req, res) => {
   }
 });
 
+// 🔑 API endpoint для получения списка токенов ресторана (требуется JWT)
+app.get('/api/agent-tokens/:restaurantCode', async (req, res) => {
+  const auth = verifyHttpToken(req.headers.authorization);
+  if (!auth) {
+    return res.status(401).json({ 
+      error: 'Unauthorized',
+      message: 'Требуется JWT токен' 
+    });
+  }
+
+  const { restaurantCode } = req.params;
+
+  if (!/^[A-Z0-9]{8}$/.test(restaurantCode)) {
+    return res.status(400).json({ 
+      error: 'Неверный формат кода',
+      message: 'Код ресторана должен содержать 8 символов' 
+    });
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('agent_tokens')
+      .select('id, token, restaurant_code, is_active, created_at, last_used_at')
+      .eq('restaurant_code', restaurantCode)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error('❌ Ошибка загрузки токенов', { error: error.message, restaurantCode });
+      return res.status(500).json({ error: 'Ошибка загрузки токенов' });
+    }
+
+    res.json({ success: true, tokens: data || [] });
+  } catch (err) {
+    logger.error('❌ Ошибка получения токенов', { error: err });
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  }
+});
+
+// 🔑 API endpoint для деактивации токена (требуется JWT)
+app.delete('/api/agent-tokens/:tokenId', async (req, res) => {
+  const auth = verifyHttpToken(req.headers.authorization);
+  if (!auth) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { tokenId } = req.params;
+
+  try {
+    const { error } = await supabaseAdmin
+      .from('agent_tokens')
+      .update({ is_active: false })
+      .eq('id', tokenId);
+
+    if (error) {
+      logger.error('❌ Ошибка деактивации токена', { error: error.message, tokenId });
+      return res.status(500).json({ error: 'Ошибка деактивации токена' });
+    }
+
+    logger.info('🔒 Токен деактивирован', { tokenId, userId: auth.userId });
+    res.json({ success: true, message: 'Токен деактивирован' });
+  } catch (err) {
+    logger.error('❌ Ошибка деактивации токена', { error: err });
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  }
+});
+
 // 🔑 Веб-страница для генерации токенов
 app.get('/generate-token', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'generate-token.html'));
