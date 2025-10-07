@@ -3,6 +3,8 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
+import { randomBytes } from 'crypto';
+import path from 'path';
 import { config } from './config';
 import { logger } from './utils/logger';
 import { httpRateLimiter } from './middleware/rateLimit';
@@ -43,6 +45,9 @@ app.use(httpRateLimiter);
 if (config.security.trustProxy) {
   app.set('trust proxy', 1);
 }
+
+// Serve static files from root directory (for generate-token.html)
+app.use(express.static(path.join(__dirname, '..')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -147,6 +152,53 @@ app.get('/api/prints', (req, res) => {
     : printQueueManager.getRecentCommands(limit);
 
   res.status(200).json({ commands });
+});
+
+// 🔑 API endpoint для генерации токенов агентов
+app.post('/api/generate-agent-token', (req, res) => {
+  const { restaurantCode } = req.body;
+  
+  // Валидация кода ресторана
+  if (!restaurantCode || typeof restaurantCode !== 'string') {
+    return res.status(400).json({ 
+      error: 'Не указан код ресторана',
+      message: 'Требуется поле restaurantCode' 
+    });
+  }
+  
+  // Проверяем формат кода (должен быть 8 символов буквы/цифры)
+  if (!/^[A-Z0-9]{8}$/.test(restaurantCode)) {
+    return res.status(400).json({ 
+      error: 'Неверный формат кода',
+      message: 'Код ресторана должен содержать 8 символов (буквы A-Z и цифры 0-9)' 
+    });
+  }
+  
+  // Генерируем случайный 32-символьный ключ
+  const randomKey = randomBytes(16).toString('hex'); // 32 hex символа
+  
+  // Формируем токен: agent_<restaurantCode>_<randomKey>
+  const agentToken = `agent_${restaurantCode}_${randomKey}`;
+  
+  logger.info('🔑 Сгенерирован токен агента', {
+    restaurantCode,
+    tokenPrefix: `agent_${restaurantCode}_...`,
+    generatedAt: new Date().toISOString()
+  });
+  
+  res.json({
+    success: true,
+    agentToken,
+    restaurantCode,
+    generatedAt: new Date().toISOString(),
+    expiresAt: null, // Токены не истекают (можно добавить позже)
+    message: 'Токен успешно сгенерирован'
+  });
+});
+
+// 🔑 Веб-страница для генерации токенов
+app.get('/generate-token', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'generate-token.html'));
 });
 
 // Root endpoint
