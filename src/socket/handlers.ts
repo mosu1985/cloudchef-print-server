@@ -76,13 +76,6 @@ export function initializeSocketHandlers(io: Server): void {
 
     // Handle Print Agent registration (legacy format with pairing code)
     socket.on('register_agent', (data: { code: string; printerInfo?: any }, callback?: (response: any) => void) => {
-      logger.info('📥 Получено событие register_agent', {
-        socketId: socket.id,
-        code: data.code,
-        hasToken: !!socket.data.agentTokenVerified,
-        verifiedCode: socket.data.verifiedRestaurantCode,
-      });
-      
       try {
         // 🔐 Если агент верифицирован через токен, используем код из токена
         const restaurantCode = socket.data.verifiedRestaurantCode || data.code;
@@ -101,6 +94,32 @@ export function initializeSocketHandlers(io: Server): void {
           
           if (callback) {
             callback({ success: false, error: 'Код ресторана не совпадает с токеном' });
+          }
+          return;
+        }
+
+        // 🔒 Проверяем, не зарегистрирован ли уже этот сокет
+        if (socket.data.agentId) {
+          logger.info('⚠️ Агент уже зарегистрирован, пропускаем повторную регистрацию', {
+            socketId: socket.id,
+            existingAgentId: socket.data.agentId,
+            code: restaurantCode,
+          });
+          
+          socket.emit('agent_registered', {
+            success: true,
+            agentId: socket.data.agentId,
+            restaurantId: socket.data.restaurantId,
+            code: socket.data.code,
+          });
+          
+          if (callback) {
+            callback({ 
+              success: true, 
+              agentId: socket.data.agentId, 
+              restaurantId: socket.data.restaurantId, 
+              code: socket.data.code 
+            });
           }
           return;
         }
