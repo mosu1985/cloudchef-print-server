@@ -11,7 +11,8 @@ const ALLOWED_ORIGINS = [
   'https://www.cloudchef.app',
   'http://localhost:3000', // Для разработки
   'http://localhost:5173', // Для разработки Vite
-  'http://localhost:5174'  // Дополнительный порт Vite
+  'http://localhost:5174', // Дополнительный порт Vite
+  /^https:\/\/.*\.vercel\.app$/ // Все Vercel deployments (регулярка)
 ];
 
 /**
@@ -27,7 +28,14 @@ function websocketAuth(socket, next) {
     // В production блокируем только если origin явно не в списке разрешенных
     // НО разрешаем localhost для локальной разработки (даже если сервер в production)
     const isLocalhost = origin && (origin.includes('localhost') || origin.includes('127.0.0.1'));
-    const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
+    const isAllowedOrigin = ALLOWED_ORIGINS.some(allowed => {
+      if (typeof allowed === 'string') {
+        return allowed === origin;
+      } else if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return false;
+    });
 
     if (process.env.NODE_ENV === 'production' && !isAllowedOrigin && !isLocalhost) {
       console.warn(`⚠️ Запрещенный origin: ${origin}`);

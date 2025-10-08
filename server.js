@@ -33,7 +33,29 @@ function log(level, message, data = {}) {
 
 // 🔧 Middleware - БЕЗОПАСНЫЙ CORS
 app.use(cors({
-  origin: ALLOWED_ORIGINS,
+  origin: (origin, callback) => {
+    // Разрешаем localhost для разработки
+    if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    // Проверяем origin через ALLOWED_ORIGINS (включая регулярки)
+    const isAllowed = ALLOWED_ORIGINS.some(allowed => {
+      if (typeof allowed === 'string') {
+        return allowed === origin;
+      } else if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return false;
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️ Запрещенный CORS origin: ${origin}`);
+      callback(new Error('Запрещенный origin'));
+    }
+  },
   methods: ["GET", "POST", "OPTIONS"],
   credentials: true // Включаем credentials для JWT
 }));
@@ -129,7 +151,29 @@ app.post('/api/generate-agent-token', (req, res) => {
 // 🚀 Инициализация Socket.IO сервера с БЕЗОПАСНОЙ конфигурацией
 const io = new Server(server, {
   cors: {
-    origin: ALLOWED_ORIGINS, // ✅ Только разрешенные домены
+    origin: (origin, callback) => {
+      // Разрешаем localhost для разработки
+      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        return callback(null, true);
+      }
+      
+      // Проверяем origin через ALLOWED_ORIGINS (включая регулярки)
+      const isAllowed = ALLOWED_ORIGINS.some(allowed => {
+        if (typeof allowed === 'string') {
+          return allowed === origin;
+        } else if (allowed instanceof RegExp) {
+          return allowed.test(origin);
+        }
+        return false;
+      });
+      
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.warn(`⚠️ Запрещенный CORS origin: ${origin}`);
+        callback(new Error('Запрещенный origin'));
+      }
+    },
     methods: ["GET", "POST"],
     credentials: true // ✅ Поддержка JWT cookies
   },
