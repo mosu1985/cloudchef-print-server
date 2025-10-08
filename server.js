@@ -204,10 +204,10 @@ io.on('connection', (socket) => {
   socket.on('register_agent', (data) => {
     const { code, printerInfo = {}, version = 'unknown' } = data;
     
-    if (!code || code.length !== 6) {
-      socket.emit('error', { 
+    if (!code || code.length !== 8) {
+      socket.emit('registration_error', { 
         type: 'INVALID_CODE', 
-        message: 'Код должен содержать 6 цифр' 
+        message: 'Код должен содержать 8 символов (формат: QZMS4766)' 
       });
       return;
     }
@@ -239,7 +239,7 @@ io.on('connection', (socket) => {
     connections.set(code, connection);
 
     // Уведомляем агента о успешной регистрации
-    socket.emit('registered', {
+    socket.emit('agent_registered', {
       status: 'success',
       message: 'Агент зарегистрирован успешно',
       connectionId,
@@ -266,10 +266,10 @@ io.on('connection', (socket) => {
   socket.on('register_browser', (data) => {
     const { code, userInfo = {} } = data;
     
-    if (!code || code.length !== 6) {
-      socket.emit('error', { 
+    if (!code || code.length !== 8) {
+      socket.emit('error_response', { 
         type: 'INVALID_CODE', 
-        message: 'Код должен содержать 6 цифр' 
+        message: 'Код должен содержать 8 символов (формат: QZMS4766)' 
       });
       return;
     }
