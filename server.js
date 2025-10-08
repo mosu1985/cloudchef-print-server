@@ -197,7 +197,16 @@ io.on('connection', (socket) => {
   log('info', '🔌 Новое подключение', { 
     socketId: socket.id, 
     connectionId,
-    address: socket.handshake.address 
+    address: socket.handshake.address,
+    clientType
+  });
+
+  // 🔍 DEBUG: Логирование ВСЕХ входящих событий
+  socket.onAny((eventName, ...args) => {
+    log('info', `📥 Событие от ${socket.id}: ${eventName}`, { 
+      clientType, 
+      data: args[0] 
+    });
   });
 
   // 🎯 РЕГИСТРАЦИЯ АГЕНТА ПРИНТЕРА
